@@ -58,9 +58,6 @@ def main():
         }
     ]
     
-    # 메인 텍스트 메시지에 URL 직접 포함
-    main_text = f"📊 {today} Amplitude 일일 리포트\n\n"
-    
     # 각 차트에 대한 섹션 추가
     for chart in amplitude_charts:
         blocks.append({
@@ -73,14 +70,11 @@ def main():
         blocks.append({
             "type": "divider"
         })
-        
-        # 메인 텍스트에도 URL 추가
-        main_text += f"{chart['title']}: {chart['url']}\n"
     
     # 메시지 전송
     send_to_slack(
         webhook_url,
-        main_text,
+        f"{today} Amplitude 일일 리포트",
         blocks
     )
     print("Amplitude 차트가 Slack으로 성공적으로 전송되었습니다.")
