@@ -7,7 +7,8 @@ from datetime import datetime
 def send_to_slack(webhook_url, message, blocks=None):
     """Slack webhook으로 메시지 전송"""
     slack_data = {
-        "text": message
+        "text": message,
+        "unfurl_links": True
     }
     
     if blocks:
@@ -38,7 +39,7 @@ def main():
         {
             "title": "일일 로그인 에러 차트",
             "url": "https://app.amplitude.com/analytics/smilegatestove/chart/7upn1ag7",
-            "description": "지난 일주일간 로그인 에러 라인 차트"
+            "description": "지난 일주일간 로그인 에러코드별 카운트 추이"
         }
     ]
     
@@ -57,6 +58,9 @@ def main():
         }
     ]
     
+    # 메인 텍스트 메시지에 URL 직접 포함
+    main_text = f"📊 {today} Amplitude 일일 리포트\n\n"
+    
     # 각 차트에 대한 섹션 추가
     for chart in amplitude_charts:
         blocks.append({
@@ -69,11 +73,14 @@ def main():
         blocks.append({
             "type": "divider"
         })
+        
+        # 메인 텍스트에도 URL 추가
+        main_text += f"{chart['title']}: {chart['url']}\n"
     
     # 메시지 전송
     send_to_slack(
         webhook_url,
-        f"{today} Amplitude 일일 리포트",
+        main_text,
         blocks
     )
     print("Amplitude 차트가 Slack으로 성공적으로 전송되었습니다.")
