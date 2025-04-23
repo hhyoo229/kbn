@@ -27,5 +27,4 @@ jobs:
       - name: Send Amplitude charts to Slack
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          AMPLITUDE_TOKEN: ${{ secrets.AMPLITUDE_TOKEN }}
         run: python scripts/send_amplitude_charts.py
