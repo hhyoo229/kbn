@@ -43,8 +43,8 @@ def main():
         }
     ]
     
-    # Slack에 보낼 블록 메시지 구성
-    blocks = [
+    # 헤더 메시지 먼저 보내기
+    header_blocks = [
         {
             "type": "header",
             "text": {
@@ -58,25 +58,46 @@ def main():
         }
     ]
     
-    # 각 차트에 대한 섹션 추가
-    for chart in amplitude_charts:
-        blocks.append({
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": f"*{chart['title']}*\n{chart['description']}\n<{chart['url']}|차트 보기 👉>\n{chart['url']}"
-            }
-        })
-        blocks.append({
-            "type": "divider"
-        })
-    
-    # 메시지 전송
     send_to_slack(
         webhook_url,
         f"{today} Amplitude 일일 리포트",
-        blocks
+        header_blocks
     )
+    
+    # 각 차트마다 두 개의 메시지 보내기 (설명 메시지 + URL만 있는 메시지)
+    for chart in amplitude_charts:
+        # 1. 설명이 포함된 메시지
+        description_blocks = [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*{chart['title']}*\n{chart['description']}\n<{chart['url']}|차트 보기 👉>"
+                }
+            }
+        ]
+        
+        send_to_slack(
+            webhook_url,
+            f"{chart['title']} - {chart['description']}",
+            description_blocks
+        )
+        
+        # 2. URL만 있는 메시지
+        url_only_data = {
+            "text": chart['url'],
+            "unfurl_links": True
+        }
+        
+        response = requests.post(
+            webhook_url, 
+            data=json.dumps(url_only_data),
+            headers={'Content-Type': 'application/json'}
+        )
+        
+        if response.status_code != 200:
+            raise ValueError(f"Slack API 요청 실패: {response.status_code}, {response.text}")
+    
     print("Amplitude 차트가 Slack으로 성공적으로 전송되었습니다.")
 
 if __name__ == "__main__":
