@@ -1,35 +1,23 @@
 #!/usr/bin/env python3
 import os
-import requests
 import json
 from datetime import datetime
-
-def send_to_slack(webhook_url, message, blocks=None):
-    """Slack webhook으로 메시지 전송"""
-    slack_data = {
-        "text": message,
-        "unfurl_links": True
-    }
-    
-    if blocks:
-        slack_data["blocks"] = blocks
-    
-    response = requests.post(
-        webhook_url, 
-        data=json.dumps(slack_data),
-        headers={'Content-Type': 'application/json'}
-    )
-    
-    if response.status_code != 200:
-        raise ValueError(f"Slack API 요청 실패: {response.status_code}, {response.text}")
-    
-    return response
+from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
 
 def main():
-    # 환경 변수에서 Slack Webhook URL 가져오기
-    webhook_url = os.environ.get('SLACK_WEBHOOK_URL')
-    if not webhook_url:
-        raise ValueError("SLACK_WEBHOOK_URL 환경 변수가 설정되지 않았습니다.")
+    # 환경 변수에서 필요한 정보 가져오기
+    slack_token = os.environ.get('SLACK_BOT_TOKEN')
+    channel_id = os.environ.get('SLACK_CHANNEL_ID')
+    
+    if not slack_token:
+        raise ValueError("SLACK_BOT_TOKEN 환경 변수가 설정되지 않았습니다.")
+    
+    if not channel_id:
+        raise ValueError("SLACK_CHANNEL_ID 환경 변수가 설정되지 않았습니다.")
+    
+    # Slack 클라이언트 초기화
+    client = WebClient(token=slack_token)
     
     # 오늘 날짜 가져오기
     today = datetime.now().strftime("%Y년 %m월 %d일")
@@ -43,61 +31,58 @@ def main():
         }
     ]
     
-    # 헤더 메시지 먼저 보내기
-    header_blocks = [
-        {
-            "type": "header",
-            "text": {
-                "type": "plain_text",
-                "text": f"📊 {today} Amplitude 일일 리포트",
-                "emoji": True
-            }
-        },
-        {
-            "type": "divider"
-        }
-    ]
-    
-    send_to_slack(
-        webhook_url,
-        f"{today} Amplitude 일일 리포트",
-        header_blocks
-    )
-    
-    # 각 차트마다 두 개의 메시지 보내기 (설명 메시지 + URL만 있는 메시지)
-    for chart in amplitude_charts:
-        # 1. 설명이 포함된 메시지
-        description_blocks = [
+    try:
+        # 헤더 메시지 보내기
+        header_blocks = [
             {
-                "type": "section",
+                "type": "header",
                 "text": {
-                    "type": "mrkdwn",
-                    "text": f"*{chart['title']}*\n{chart['description']}\n<{chart['url']}|차트 보기 👉>"
+                    "type": "plain_text",
+                    "text": f"📊 {today} Amplitude 일일 리포트",
+                    "emoji": True
                 }
+            },
+            {
+                "type": "divider"
             }
         ]
         
-        send_to_slack(
-            webhook_url,
-            f"{chart['title']} - {chart['description']}",
-            description_blocks
+        client.chat_postMessage(
+            channel=channel_id,
+            blocks=header_blocks,
+            text=f"{today} Amplitude 일일 리포트"
         )
         
-        # 2. URL만 있는 메시지 (Amplitude 멘션 포함)
-        url_only_data = {
-            "text": chart['url']
-        }
+        # 각 차트마다 두 개의 메시지 보내기 (설명 + URL)
+        for chart in amplitude_charts:
+            # 설명이 포함된 메시지
+            description_blocks = [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"*{chart['title']}*\n{chart['description']}\n<{chart['url']}|차트 보기 👉>"
+                    }
+                }
+            ]
+            
+            client.chat_postMessage(
+                channel=channel_id,
+                blocks=description_blocks,
+                text=f"{chart['title']} - {chart['description']}"
+            )
+            
+            # URL만 있는 메시지 - 차트가 렌더링되도록
+            client.chat_postMessage(
+                channel=channel_id,
+                text=chart['url'],
+                unfurl_links=True  # URL 미리보기 활성화
+            )
+            
+        print("Amplitude 차트가 Slack으로 성공적으로 전송되었습니다.")
         
-        response = requests.post(
-            webhook_url, 
-            data=json.dumps(url_only_data),
-            headers={'Content-Type': 'application/json'}
-        )
-        
-        if response.status_code != 200:
-            raise ValueError(f"Slack API 요청 실패: {response.status_code}, {response.text}")
-    
-    print("Amplitude 차트가 Slack으로 성공적으로 전송되었습니다.")
+    except SlackApiError as e:
+        print(f"Error sending message: {e.response['error']}")
 
 if __name__ == "__main__":
     main()
