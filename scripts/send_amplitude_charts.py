@@ -85,7 +85,7 @@ def main():
         
         # 2. URL만 있는 메시지 (Amplitude 멘션 포함)
         url_only_data = {
-            "text": chart['url']"
+            "text": chart['url']
         }
         
         response = requests.post(
