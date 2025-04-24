@@ -7,22 +7,17 @@ from slack_sdk.errors import SlackApiError
 
 def main():
     # 환경 변수에서 필요한 정보 가져오기
-    bot_token = os.environ.get('SLACK_BOT_TOKEN')
-    user_token = os.environ.get('SLACK_USER_TOKEN')  # 사용자 토큰 추가
+    slack_token = os.environ.get('SLACK_BOT_TOKEN')
     channel_id = os.environ.get('SLACK_CHANNEL_ID')
     
-    if not bot_token:
+    if not slack_token:
         raise ValueError("SLACK_BOT_TOKEN 환경 변수가 설정되지 않았습니다.")
-    
-    if not user_token:
-        raise ValueError("SLACK_USER_TOKEN 환경 변수가 설정되지 않았습니다.")
     
     if not channel_id:
         raise ValueError("SLACK_CHANNEL_ID 환경 변수가 설정되지 않았습니다.")
     
-    # Bot 클라이언트와 User 클라이언트 초기화
-    bot_client = WebClient(token=bot_token)
-    user_client = WebClient(token=user_token)
+    # Slack 클라이언트 초기화
+    client = WebClient(token=slack_token)
     
     # 오늘 날짜 가져오기
     today = datetime.now().strftime("%Y년 %m월 %d일")
@@ -37,7 +32,7 @@ def main():
     ]
     
     try:
-        # 헤더 메시지 보내기 (봇으로 전송)
+        # 헤더 메시지 보내기
         header_blocks = [
             {
                 "type": "header",
@@ -52,34 +47,29 @@ def main():
             }
         ]
         
-        bot_client.chat_postMessage(
+        client.chat_postMessage(
             channel=channel_id,
             blocks=header_blocks,
             text=f"{today} Amplitude 일일 리포트"
         )
         
-        # 각 차트에 대한 설명 메시지는 봇으로 전송
+        # 각 차트마다 두 개의 메시지 보내기 (설명 + URL)
         for chart in amplitude_charts:
+            # 설명이 포함된 메시지
             description_blocks = [
                 {
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"*{chart['title']}*\n{chart['description']}\n<{chart['url']}|차트를 보려면 아래 URL을 확인하세요>"
+                        "text": f"*{chart['title']}*\n{chart['description']}\n<{chart['url']}|차트 보기 👉>"
                     }
                 }
             ]
             
-            bot_client.chat_postMessage(
+            client.chat_postMessage(
                 channel=channel_id,
                 blocks=description_blocks,
                 text=f"{chart['title']} - {chart['description']}"
-            )
-            
-            # URL만 있는 메시지는 사용자 계정으로 전송
-            user_client.chat_postMessage(
-                channel=channel_id,
-                text=chart['url']
             )
             
         print("Amplitude 차트가 Slack으로 성공적으로 전송되었습니다.")
