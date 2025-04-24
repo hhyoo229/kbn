@@ -37,19 +37,9 @@ def main():
     # Amplitude 차트 URL 목록
     amplitude_charts = [
         {
-            "title": "일간 활성 사용자(DAU)",
+            "title": "일일 로그인 에러 차트",
             "url": "https://app.amplitude.com/analytics/smilegatestove/chart/7upn1ag7",
-            "description": "지난 24시간 동안의 활성 사용자 수"
-        },
-        {
-            "title": "사용자 방문 경로",
-            "url": "https://app.amplitude.com/analytics/smilegatestove/chart/abcdef1",
-            "description": "주요 유입 경로 및 사용자 행동 분석"
-        },
-        {
-            "title": "전환율 대시보드",
-            "url": "https://app.amplitude.com/analytics/smilegatestove/chart/xyz123",
-            "description": "전환 단계별 이탈률 및 전환율"
+            "description": "지난 일주일간 로그인 에러코드별 카운트 추이"
         }
     ]
     
@@ -95,8 +85,7 @@ def main():
         
         # 2. URL만 있는 메시지 (Amplitude 멘션 포함)
         url_only_data = {
-            "text": f"<@Amplitude> {chart['url']}",
-            "unfurl_links": True
+            "text": chart['url']"
         }
         
         response = requests.post(
